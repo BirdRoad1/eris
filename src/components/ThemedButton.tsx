@@ -16,7 +16,7 @@ export default function ThemedButton({ title, onPress, style, rippleColor, ...pr
 			// }
 		]}
 		android_ripple={{
-			color: rippleColor === undefined ? '#2f2f2fff' : rippleColor,
+			color: rippleColor === undefined ? undefined/*'#2f2f2fff'*/ : rippleColor,
 		}}
 		// [
 		// 	styles.button,

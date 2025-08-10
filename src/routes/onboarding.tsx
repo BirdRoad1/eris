@@ -1,29 +1,33 @@
-import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { StatusBar, StyleSheet, View } from 'react-native';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import StartComponent from '../components/onboarding/StartComponent';
 import { useState } from 'react';
 import ConnectServerComponent from '../components/onboarding/ConnectServerComponent';
 import ThemedButton from '../components/ThemedButton';
+import ReadyComponent from '../components/onboarding/ReadyComponent';
+import { useRouter } from 'expo-router';
 
-const screens = [StartComponent, ConnectServerComponent];
+const screens = [StartComponent, ConnectServerComponent, ReadyComponent];
 
 export default function OnboardingScreen() {
   const [currScreen, setCurrScreen] = useState(0);
+  const [canGoNext, setCanGoNext] = useState(false);
+  const router = useRouter();
 
   const Screen = screens[currScreen];
-
-  console.log(Screen);
 
   return (
     <ThemedView style={styles.background}>
       <ThemedText style={styles.title} type="title">
         Eris Setup
       </ThemedText>
-      <View style={{
-        flex: 1
-      }}>
-        <Screen />
+      <View
+        style={{
+          flex: 1
+        }}
+      >
+        <Screen onValidationChange={value => setCanGoNext(value)} />
       </View>
       <View style={styles.buttons}>
         <ThemedButton
@@ -32,11 +36,23 @@ export default function OnboardingScreen() {
           onPress={() => setCurrScreen(curr => Math.max(curr - 1, 0))}
         />
         <ThemedButton
-          title="Next"
-          style={{ backgroundColor: '#50328dff' }}
-          rippleColor='#411e86ff'
+          title={currScreen >= screens.length - 1 ? 'Finish' : 'Next'}
+          style={{ backgroundColor: canGoNext ? '#50328dff' : '#2f2447ff' }}
+          // rippleColor="#411e86ff"
           // backgroundColor='#50328dff' // 40286f
-          onPress={() => setCurrScreen(curr => Math.min(curr + 1, screens.length - 1))}
+          onPress={() => {
+            if (currScreen >= screens.length - 1) {
+              // Done with setup, go to home page!
+              
+              router.replace('/songs');
+              return;
+            }
+
+            if (canGoNext) {
+              setCanGoNext(false);
+              setCurrScreen(curr => Math.min(curr + 1, screens.length - 1));
+            }
+          }}
         />
       </View>
       <View>{/* TODO: circles here */}</View>
