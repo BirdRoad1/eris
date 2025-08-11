@@ -4,6 +4,7 @@ import ThemedButton from '../ThemedButton';
 import ThemedInput from '../ThemedInput';
 import { useContext, useEffect, useState } from 'react';
 import { ServerContext } from '@/src/provider/server-provider';
+import API from '@/src/api/api';
 
 type Props = {
   onValidationChange(value: boolean): void;
@@ -18,60 +19,69 @@ export default function ConnectServerComponent({ onValidationChange }: Props) {
   useEffect(() => {
     setUrl('http://192.168.1.92:8000');
     setToken(
-      '61224c7fd41c60a786474cd88c2b72d238b494b734d774e748a8b2e9079a09c1'
+      '6e7a4b28872f03066f513860597ff459ad379466a22e4921d112aa2b1c123c62'
     );
   }, []);
 
-  function connect() {
+  async function connect() {
     const testUrl = `${url}${!url.endsWith('/') ? '/' : ''}api/v1/`;
     const abortController = new AbortController();
     setTimeout(() => {
       abortController.abort('Timed out');
     }, 5000);
-    fetch(testUrl, {
-      signal: abortController.signal
-    })
-      .then(res => res.json() as Promise<unknown>)
-      .then(json => {
-        if (
-          typeof json !== 'object' ||
-          json === null ||
-          !('server' in json) ||
-          typeof json['server'] !== 'string' ||
-          json.server !== 'eris-sync' ||
-          !('version' in json) ||
-          typeof json['version'] !== 'string'
-        ) {
-          Alert.alert(
-            'Error',
-            'The server does not seem to be a valid eris-sync server. Response: ' +
-              JSON.stringify(json)
-          );
-          return;
-        }
+    try {
+      const json = await (
+        await fetch(testUrl, {
+          signal: abortController.signal
+        })
+      ).json();
 
-        const { server, version } = json;
+      if (
+        typeof json !== 'object' ||
+        json === null ||
+        !('server' in json) ||
+        typeof json['server'] !== 'string' ||
+        json.server !== 'eris-sync' ||
+        !('version' in json) ||
+        typeof json['version'] !== 'string'
+      ) {
         Alert.alert(
-          'Connection succeeded',
-          `Successfully connected to server running ${server}@${version}`
+          'Error',
+          'The server does not seem to be a valid eris-sync server. Response: ' +
+            JSON.stringify(json)
         );
+        return;
+      }
 
-        serverCtx?.createAPI(url, token);
+      const { server, version } = json;
 
-        onValidationChange(true);
-      })
-      .catch(err => {
-        if (err instanceof DOMException) {
-          Alert.alert(
-            'Connection failed',
-            'Timed out. Please check the server and your internet connection and try again.'
-          );
-          return;
-        }
+      const api = new API(url, token);
+      if (!(await api.verifySession())) {
+        Alert.alert('Failed to activate', 'Invalid token');
+        return;
+      }
 
-        Alert.alert('Connection failed', err.message);
-      });
-    console.log(testUrl);
+      Alert.alert(
+        'Connection succeeded',
+        `Successfully connected to server running ${server}@${version}`
+      );
+
+      serverCtx?.createAPI(api, token);
+
+      onValidationChange(true);
+    } catch (err) {
+      if (err instanceof DOMException) {
+        Alert.alert(
+          'Connection failed',
+          'Timed out. Please check the server and your internet connection and try again.'
+        );
+        return;
+      }
+
+      const msg = err instanceof Error ? err.message : String(err);
+
+      Alert.alert('Connection failed', msg);
+    }
   }
 
   return (

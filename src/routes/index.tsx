@@ -13,7 +13,7 @@ export default function HomeScreen() {
     if (serverCtx?.loaded && api === null) {
       router.replace('/onboarding');
     } else {
-      router.replace('/songs');
+      router.replace('/(tabs)/songs');
     }
   }, [api, router, serverCtx]);
 

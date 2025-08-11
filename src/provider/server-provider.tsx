@@ -5,7 +5,8 @@ import { Alert } from 'react-native';
 
 type ContextType = {
   getAPI: () => API | null;
-  createAPI: (url: string, token: string) => API | null;
+  logout: () => void;
+  createAPI: (api: API, token: string) => API | null;
   loaded: boolean;
 };
 
@@ -41,17 +42,21 @@ export const ServerProvider = ({ children }: Props) => {
     <ServerContext.Provider
       value={{
         loaded,
-        createAPI: (url: string, token: string) => {
-          SecureStore.setItemAsync('server_url', url);
+        createAPI: (api: API, token: string) => {
+          SecureStore.setItemAsync('server_url', api.getURL());
           SecureStore.setItemAsync('server_token', token);
 
-          const api = new API(url, token);
           setAPI(api);
 
           return api;
         },
         getAPI: () => {
           return api ?? null;
+        },
+        logout: () => {
+          SecureStore.deleteItemAsync('server_url');
+          SecureStore.deleteItemAsync('server_token');
+          setAPI(undefined);
         }
       }}
     >

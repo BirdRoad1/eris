@@ -43,8 +43,8 @@ export default function OnboardingScreen() {
           onPress={() => {
             if (currScreen >= screens.length - 1) {
               // Done with setup, go to home page!
-              
-              router.replace('/songs');
+
+              router.replace('/(tabs)/songs');
               return;
             }
 
