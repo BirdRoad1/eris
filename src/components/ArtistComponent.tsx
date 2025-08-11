@@ -2,25 +2,26 @@ import { Image, TouchableOpacity, View } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { useContext, useEffect, useState } from 'react';
+import { useServer } from '../provider/server-provider';
 import { router } from 'expo-router';
 import { MusicContext } from '../provider/music-provider';
-import { Song } from '../api/song';
 import { useAlert } from '../provider/alert-provider';
-import { useServer } from '../provider/server-provider';
+import { Artist } from '../api/artist';
 
-type Props = { song: Song; onDelete?: () => void }; // TODO: typed song
+type Props = { artist: Artist; onDelete?: () => void }; // TODO: typed song
 
-export default function SongComponent({ song, onDelete }: Props) {
+export default function ArtistComponent({ artist, onDelete }: Props) {
+  const server = useServer();
   const music = useContext(MusicContext);
-  const api = useServer().getAPI();
+  const api = server.getAPI();
 
   const [imageData, setImageData] = useState<string>();
   const alert = useAlert();
 
   useEffect(() => {
-    if (!song.cover_url) return;
+    if (!artist.cover_url) return;
     api
-      ?.fetchImageBase64(song.cover_url)
+      ?.fetchImageBase64(artist.cover_url)
       .then(img => {
         if (img) {
           setImageData(img);
@@ -28,22 +29,19 @@ export default function SongComponent({ song, onDelete }: Props) {
       })
       .catch(err => {
         console.log(
-          'Image failed to load: ' + song.cover_url + ', error: ' + err
+          'Image failed to load: ' + artist.cover_url + ', error: ' + err
         );
       });
-  }, [api, song.cover_url]);
+  }, [api, artist.cover_url]);
 
   return (
     <TouchableOpacity
       activeOpacity={0.6}
-      onPress={() => {
-        music?.setCurrentSong?.(song);
-        router.navigate('/music-player');
-      }}
+      onPress={() => {}}
       onLongPress={() => {
         alert.show(
-          'Remove Song',
-          'Are you sure you want to remove this song?',
+          'Remove Artist',
+          'Are you sure you want to remove this artist?',
           true,
           sure => {
             if (sure) {
@@ -54,7 +52,7 @@ export default function SongComponent({ song, onDelete }: Props) {
       }}
     >
       <ThemedView
-        key={song.id}
+        key={artist.id}
         style={{
           backgroundColor: '#0d0d0dff',
           borderRadius: 4,
@@ -70,22 +68,16 @@ export default function SongComponent({ song, onDelete }: Props) {
           style={{
             width: 100,
             height: 100,
-            borderRadius: 4
+            borderRadius: 100
           }}
         />
         <View>
-          <ThemedText style={{ fontSize: 15, fontWeight: 'bold' }}>
-            {song.title} {song.release_year ? `(${song.release_year})` : ''}
+          <ThemedText style={{ fontSize: 16, fontWeight: 'bold' }}>
+            {artist.name}
           </ThemedText>
-          {song.artist_name !== null && (
-            <ThemedText>{song.artist_name}</ThemedText>
-          )}
-          {song.release_year !== null && (
-            <ThemedText>Released {song.release_year}</ThemedText>
-          )}
-          {song.duration_seconds !== null && (
-            <ThemedText>Duration: {song.duration_seconds}s</ThemedText>
-          )}
+          <ThemedText style={{ fontSize: 16 }}>
+            {artist.song_count} songs
+          </ThemedText>
         </View>
       </ThemedView>
     </TouchableOpacity>

@@ -1,7 +1,14 @@
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState
+} from 'react';
 import API from '../api/api';
 import * as SecureStore from 'expo-secure-store';
 import { Alert } from 'react-native';
+import { useAlert } from './alert-provider';
 
 type ContextType = {
   getAPI: () => API | null;
@@ -10,15 +17,25 @@ type ContextType = {
   loaded: boolean;
 };
 
-export const ServerContext = createContext<ContextType | null>(null);
+const ServerContext = createContext<ContextType | null>(null);
 
 type Props = {
   children: ReactNode;
 };
 
+export function useServer() {
+  const ctx = useContext(ServerContext);
+  if (!ctx) {
+    throw new Error('Please wrap this component in AlertProvider');
+  }
+
+  return ctx;
+}
+
 export const ServerProvider = ({ children }: Props) => {
   const [api, setAPI] = useState<API>();
   const [loaded, setLoaded] = useState(false);
+  const alert = useAlert();
 
   useEffect(() => {
     (async () => {
@@ -33,10 +50,10 @@ export const ServerProvider = ({ children }: Props) => {
         setLoaded(true);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        Alert.alert('Data error', `Failed to load app data: ${errMsg}`);
+        alert.show('Data error', `Failed to load app data: ${errMsg}`);
       }
     })();
-  }, []);
+  }, [alert]);
 
   return (
     <ServerContext.Provider

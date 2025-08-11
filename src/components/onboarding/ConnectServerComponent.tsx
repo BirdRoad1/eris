@@ -3,15 +3,17 @@ import { ThemedText } from '../ThemedText';
 import ThemedButton from '../ThemedButton';
 import ThemedInput from '../ThemedInput';
 import { useContext, useEffect, useState } from 'react';
-import { ServerContext } from '@/src/provider/server-provider';
 import API from '@/src/api/api';
+import { useAlert } from '@/src/provider/alert-provider';
+import { useServer } from '@/src/provider/server-provider';
 
 type Props = {
   onValidationChange(value: boolean): void;
 };
 
 export default function ConnectServerComponent({ onValidationChange }: Props) {
-  const serverCtx = useContext(ServerContext);
+  const serverCtx = useServer();
+  const alert = useAlert();
 
   const [url, setUrl] = useState('');
   const [token, setToken] = useState('');
@@ -45,7 +47,7 @@ export default function ConnectServerComponent({ onValidationChange }: Props) {
         !('version' in json) ||
         typeof json['version'] !== 'string'
       ) {
-        Alert.alert(
+        alert.show(
           'Error',
           'The server does not seem to be a valid eris-sync server. Response: ' +
             JSON.stringify(json)
@@ -57,11 +59,11 @@ export default function ConnectServerComponent({ onValidationChange }: Props) {
 
       const api = new API(url, token);
       if (!(await api.verifySession())) {
-        Alert.alert('Failed to activate', 'Invalid token');
+        alert.show('Failed to activate', 'Invalid token');
         return;
       }
 
-      Alert.alert(
+      alert.show(
         'Connection succeeded',
         `Successfully connected to server running ${server}@${version}`
       );
@@ -71,7 +73,7 @@ export default function ConnectServerComponent({ onValidationChange }: Props) {
       onValidationChange(true);
     } catch (err) {
       if (err instanceof DOMException) {
-        Alert.alert(
+        alert.show(
           'Connection failed',
           'Timed out. Please check the server and your internet connection and try again.'
         );
@@ -80,7 +82,7 @@ export default function ConnectServerComponent({ onValidationChange }: Props) {
 
       const msg = err instanceof Error ? err.message : String(err);
 
-      Alert.alert('Connection failed', msg);
+      alert.show('Connection failed', msg);
     }
   }
 

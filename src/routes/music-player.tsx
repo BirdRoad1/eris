@@ -8,14 +8,15 @@ import {
   View
 } from 'react-native';
 import { ThemedView } from '../components/ThemedView';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { MusicContext } from '../provider/music-provider';
 import { router, Stack } from 'expo-router';
 import { ThemedText } from '../components/ThemedText';
-import { ServerContext } from '../provider/server-provider';
 import ProgressBar from '../components/ProgressBar';
 import { IconSymbol } from '../components/ui/IconSymbol';
 import { AudioStatus, createAudioPlayer } from 'expo-audio';
+import { useAlert } from '../provider/alert-provider';
+import { useServer } from '../provider/server-provider';
 
 function formatSeconds(seconds: number): string {
   seconds = Math.floor(seconds);
@@ -38,7 +39,7 @@ function formatSeconds(seconds: number): string {
 }
 
 export default function MusicPlayer() {
-  const serverCtx = useContext(ServerContext);
+  const serverCtx = useServer();
   const music = useContext(MusicContext);
   const songId = music?.currentSong?.id;
   const api = serverCtx?.getAPI();
@@ -47,16 +48,25 @@ export default function MusicPlayer() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  const alert = useAlert();
+
+  const playbackStatusListener = useCallback((status: AudioStatus) => {
+    setDuration(status.duration);
+    setProgress(status.currentTime);
+  }, []);
+
   // On initial render, subscribe to music player events
   useEffect(() => {
     if (!music?.player?.current) return;
-    const listener = (status: AudioStatus) => {
-      setDuration(status.duration);
-      setProgress(status.currentTime);
-    };
-    music.player?.current?.addListener('playbackStatusUpdate', listener);
+    music.player?.current?.addListener(
+      'playbackStatusUpdate',
+      playbackStatusListener
+    );
     return () => {
-      music.player?.current?.removeListener('playbackStatusUpdate', listener);
+      music.player?.current?.removeListener(
+        'playbackStatusUpdate',
+        playbackStatusListener
+      );
     };
 
     // it's ok to ignore eslint here, i think
@@ -69,7 +79,7 @@ export default function MusicPlayer() {
     if (!songId || !api || music?.player.current) return;
     api.getSongMedia(songId).then(media => {
       if (media.length === 0) {
-        Alert.alert('No media', 'This song has no media available');
+        alert.show('No media', 'This song has no media available');
         return;
       }
 
@@ -85,12 +95,14 @@ export default function MusicPlayer() {
         100
       );
 
+      music.player.current?.removeAllListeners('playbackStatusUpdate');
       music.player.current?.release();
-      music.player.current?.remove();
-      music.player.current = newPlayer;
+
+      newPlayer.addListener('playbackStatusUpdate', playbackStatusListener);
       newPlayer.seekTo(0);
+      music.player.current = newPlayer;
     });
-  }, [api, songId, music?.player]);
+  }, [api, songId, music?.player, alert, playbackStatusListener]);
 
   // Fetch song cover on initial render
   useEffect(() => {
@@ -162,7 +174,7 @@ export default function MusicPlayer() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 10,
+              gap: 15,
               justifyContent: 'center'
             }}
           >
@@ -173,7 +185,12 @@ export default function MusicPlayer() {
                 padding: 0
               }}
             >
-              <IconSymbol color="#ffffff" name="arrow-back" size={32} />
+              <IconSymbol
+                color="#ffffff"
+                name="arrow-left"
+                size={32}
+                style={{ fontSize: 38, marginLeft: 9 }}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -215,7 +232,12 @@ export default function MusicPlayer() {
                 width: 32
               }}
             >
-              <IconSymbol color="#ffffff" name="arrow-forward" size={32} />
+              <IconSymbol
+                color="#ffffff"
+                name="arrow-right"
+                size={32}
+                style={{ fontSize: 38, marginLeft: -15 }}
+              />
             </TouchableOpacity>
           </View>
         </View>

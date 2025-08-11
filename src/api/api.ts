@@ -1,5 +1,7 @@
 import * as Application from 'expo-application';
 import { Song } from './song';
+import * as FileSystem from 'expo-file-system';
+import { Artist } from './artist';
 
 const USER_AGENT = `${Application.applicationId}/${Application.nativeApplicationVersion} (made with <3)`;
 
@@ -23,13 +25,15 @@ export default class API {
     return this.token;
   }
 
-  private checkStatus(res: Response) {
+  private async checkStatus(res: Response) {
     if (res.status === 401) {
       throw new APIUnauthorizedError();
     }
 
     if (!res.ok) {
-      throw new Error('Invalid response status: ' + res.status);
+      const json = await res.json();
+
+      throw new Error(json.error ?? 'Bad HTTP code: ' + res.status);
     }
   }
 
@@ -66,7 +70,14 @@ export default class API {
 
   async getSongs(): Promise<Song[]> {
     const res = await this.request(`${this.url}api/v1/songs`);
-    this.checkStatus(res);
+    await this.checkStatus(res);
+    const json = await res.json();
+    return json['results'];
+  }
+
+  async getArtists(): Promise<Artist[]> {
+    const res = await this.request(`${this.url}api/v1/artists`);
+    await this.checkStatus(res);
     const json = await res.json();
     return json['results'];
   }
@@ -85,8 +96,99 @@ export default class API {
 
   async getSongMedia(songId: number) {
     const res = await this.request(`${this.url}api/v1/songs/${songId}/media`);
-    this.checkStatus(res);
+    await this.checkStatus(res);
     const json = await res.json();
     return json['results'];
+  }
+
+  async createSong(title: string, artistId?: number) {
+    const res = await this.request(`${this.url}api/v1/songs`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ title, artistId })
+    });
+
+    await this.checkStatus(res);
+
+    return await res.json();
+  }
+
+  async deleteSong(id: number) {
+    const res = await this.request(`${this.url}api/v1/songs/${id}`, {
+      method: 'DELETE'
+    });
+
+    await this.checkStatus(res);
+  }
+
+  async uploadAsset(
+    id: number,
+    fileUri: string,
+    entity: 'songs' | 'artists',
+    fileName: string,
+    type: 'media' | 'cover'
+  ) {
+    const result = await FileSystem.uploadAsync(
+      `${this.url}api/v1/${entity}/${id}/${type}`,
+      fileUri,
+      {
+        httpMethod: 'POST',
+        headers: {
+          authorization: `Bearer ${this.token}`,
+          'file-name': fileName
+        }
+      }
+    );
+
+    if (result.status === 401) {
+      throw new APIUnauthorizedError();
+    }
+
+    if (result.status !== 200) {
+      let err: string;
+      try {
+        err = JSON.parse(result.body).error;
+      } catch {}
+      err ??= 'Bad HTTP code: ' + result.status;
+
+      throw new Error(err);
+    }
+  }
+
+  async createArtist(name: string) {
+    const res = await this.request(`${this.url}api/v1/artists`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ name })
+    });
+
+    await this.checkStatus(res);
+
+    return await res.json();
+  }
+
+  async deleteArtist(id: number) {
+    const res = await this.request(`${this.url}api/v1/artists/${id}`, {
+      method: 'DELETE'
+    });
+
+    await this.checkStatus(res);
+  }
+
+  async searchArtist(name: string) {
+    const res = await this.request(
+      `${this.url}api/v1/artists/search?name=${name}`,
+      {
+        method: 'GET'
+      }
+    );
+
+    await this.checkStatus(res);
+
+    return (await res.json()).results;
   }
 }

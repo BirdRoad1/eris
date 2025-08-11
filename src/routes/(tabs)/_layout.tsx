@@ -11,7 +11,7 @@ import { useColorScheme } from '@/src/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-
+  
   return (
     <Tabs
       screenOptions={{
@@ -33,6 +33,33 @@ export default function TabLayout() {
           title: 'Songs',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="music-note" color={color} />
+          )
+        }}
+      />
+       <Tabs.Screen
+        name="artists"
+        options={{
+          title: 'Artists',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="person" color={color} />
+          )
+        }}
+      />
+      <Tabs.Screen
+        name="albums"
+        options={{
+          title: 'Albums',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="album" color={color} />
+          )
+        }}
+      />
+      <Tabs.Screen
+        name="playlists"
+        options={{
+          title: 'Playlists',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="playlist-add-check" color={color} />
           )
         }}
       />
