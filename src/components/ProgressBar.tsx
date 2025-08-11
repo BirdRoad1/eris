@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { PanResponder, View, ViewStyle } from 'react-native';
 
 type Props = {
@@ -16,6 +16,22 @@ export default function ProgressBar({
   onValueChange,
   style
 }: Props) {
+  const minRef = useRef(min);
+  const maxRef = useRef(min);
+  const valueRef = useRef(min);
+
+  useEffect(() => {
+    minRef.current = min;
+  }, [min]);
+
+  useEffect(() => {
+    maxRef.current = max;
+  }, [max]);
+
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -37,6 +53,9 @@ export default function ProgressBar({
   function reportChange(touchX: number) {
     if (!barRef.current) return;
     barRef.current.measure((x, y, width, height, pageX, pageY) => {
+      const min = minRef.current;
+      const max = maxRef.current;
+
       const amt = (touchX - pageX) / width;
       onValueChange?.(Math.max(Math.min(amt * (max - min), max), min));
     });

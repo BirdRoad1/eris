@@ -19,6 +19,10 @@ export default class API {
     return this.url;
   }
 
+  public getToken() {
+    return this.token;
+  }
+
   private checkStatus(res: Response) {
     if (res.status === 401) {
       throw new APIUnauthorizedError();
@@ -28,18 +32,18 @@ export default class API {
       throw new Error('Invalid response status: ' + res.status);
     }
   }
-  
+
   private request(url: string, options?: RequestInit) {
     options ??= {};
     let headers = (options.headers as Record<string, string>) ?? {};
     headers['authorization'] = 'Bearer ' + this.token;
     headers['user-agent'] = USER_AGENT;
-    
+
     options.headers = headers;
-    
+
     return fetch(url, options);
   }
-  
+
   async verifySession() {
     const res = await this.request(`${this.url}api/v1/me`);
     return res.ok;
@@ -77,5 +81,12 @@ export default class API {
     });
 
     return res.ok;
+  }
+
+  async getSongMedia(songId: number) {
+    const res = await this.request(`${this.url}api/v1/songs/${songId}/media`);
+    this.checkStatus(res);
+    const json = await res.json();
+    return json['results'];
   }
 }

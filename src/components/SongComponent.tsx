@@ -1,9 +1,8 @@
-import { Image, Pressable, TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { useContext, useEffect, useState } from 'react';
 import { ServerContext } from '../provider/server-provider';
-import ThemedButton from './ThemedButton';
 import { router } from 'expo-router';
 import { MusicContext } from '../provider/music-provider';
 import { Song } from '../api/song';

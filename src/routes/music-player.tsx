@@ -1,21 +1,21 @@
 import {
+  Alert,
   Image,
-  PanResponder,
   StatusBar,
   StyleSheet,
-  TouchableNativeFeedback,
+  ToastAndroid,
   TouchableOpacity,
   View
 } from 'react-native';
 import { ThemedView } from '../components/ThemedView';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { MusicContext } from '../provider/music-provider';
 import { router, Stack } from 'expo-router';
 import { ThemedText } from '../components/ThemedText';
 import { ServerContext } from '../provider/server-provider';
 import ProgressBar from '../components/ProgressBar';
-import ThemedButton from '../components/ThemedButton';
 import { IconSymbol } from '../components/ui/IconSymbol';
+import { AudioStatus, createAudioPlayer } from 'expo-audio';
 
 function formatSeconds(seconds: number): string {
   seconds = Math.floor(seconds);
@@ -40,10 +40,59 @@ function formatSeconds(seconds: number): string {
 export default function MusicPlayer() {
   const serverCtx = useContext(ServerContext);
   const music = useContext(MusicContext);
+  const songId = music?.currentSong?.id;
+  const api = serverCtx?.getAPI();
+
   const [cover, setCover] = useState<string | undefined>();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  // On initial render, subscribe to music player events
+  useEffect(() => {
+    if (!music?.player?.current) return;
+    const listener = (status: AudioStatus) => {
+      setDuration(status.duration);
+      setProgress(status.currentTime);
+    };
+    music.player?.current?.addListener('playbackStatusUpdate', listener);
+    return () => {
+      music.player?.current?.removeListener('playbackStatusUpdate', listener);
+    };
+
+    // it's ok to ignore eslint here, i think
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // On initial render, load song media and create a player
+  // if no player exists yet.
+  useEffect(() => {
+    if (!songId || !api || music?.player.current) return;
+    api.getSongMedia(songId).then(media => {
+      if (media.length === 0) {
+        Alert.alert('No media', 'This song has no media available');
+        return;
+      }
+
+      const audio = media[0].url;
+      // TODO: ensure that the media URL matches our backend before giving our token!
+      const newPlayer = createAudioPlayer(
+        {
+          uri: audio,
+          headers: {
+            Authorization: 'Bearer ' + api.getToken()
+          }
+        },
+        100
+      );
+
+      music.player.current?.release();
+      music.player.current?.remove();
+      music.player.current = newPlayer;
+      newPlayer.seekTo(0);
+    });
+  }, [api, songId, music?.player]);
+
+  // Fetch song cover on initial render
   useEffect(() => {
     const coverUrl = music?.currentSong?.cover_url;
     if (!coverUrl) {
@@ -105,7 +154,8 @@ export default function MusicPlayer() {
             max={duration}
             value={progress}
             onValueChange={value => {
-              setProgress(value);
+              console.log(music.player.current);
+              music.player.current?.seekTo(value);
             }}
           />
           <View
@@ -126,7 +176,23 @@ export default function MusicPlayer() {
               <IconSymbol color="#ffffff" name="arrow-back" size={32} />
             </TouchableOpacity>
 
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                if (!music.player.current) {
+                  ToastAndroid.show('Player not ready', ToastAndroid.SHORT);
+                  return;
+                }
+
+                if (!music.player.current.playing) {
+                  if (music.player.current.currentStatus.didJustFinish) {
+                    music.player.current.seekTo(0);
+                  }
+                  music.player.current.play();
+                } else {
+                  music.player.current.pause();
+                }
+              }}
+            >
               <View
                 style={{
                   width: 40,
@@ -137,7 +203,11 @@ export default function MusicPlayer() {
                   alignItems: 'center'
                 }}
               >
-                <IconSymbol color="#ffffff" name="play-arrow" size={32} />
+                <IconSymbol
+                  color="#ffffff"
+                  name={music.player.current?.playing ? 'pause' : 'play-arrow'}
+                  size={32}
+                />
               </View>
             </TouchableOpacity>
             <TouchableOpacity
