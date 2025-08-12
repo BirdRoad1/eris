@@ -8,7 +8,7 @@ import {
   View
 } from 'react-native';
 import { ThemedView } from '../components/ThemedView';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { MusicContext } from '../provider/music-provider';
 import { router, Stack } from 'expo-router';
 import { ThemedText } from '../components/ThemedText';
@@ -17,7 +17,9 @@ import { IconSymbol } from '../components/ui/IconSymbol';
 import { AudioStatus, createAudioPlayer } from 'expo-audio';
 import { useAlert } from '../provider/alert-provider';
 import { useServer } from '../provider/server-provider';
-
+import { useLocalSearchParams } from 'expo-router/build/hooks';
+import { Song } from '../api/song';
+import * as Audio from 'expo-audio';
 function formatSeconds(seconds: number): string {
   seconds = Math.floor(seconds);
   const sections: string[] = [];
@@ -43,12 +45,18 @@ export default function MusicPlayer() {
   const music = useContext(MusicContext);
   const songId = music?.currentSong?.id;
   const api = serverCtx?.getAPI();
+  const params = useLocalSearchParams();
 
   const [cover, setCover] = useState<string | undefined>();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
   const alert = useAlert();
+  const song = useRef(
+    'song' in params && typeof params['song'] === 'string'
+      ? (JSON.parse(params['song']) as Song)
+      : null
+  ).current;
 
   const playbackStatusListener = useCallback((status: AudioStatus) => {
     setDuration(status.duration);
@@ -57,7 +65,11 @@ export default function MusicPlayer() {
 
   // On initial render, subscribe to music player events
   useEffect(() => {
-    if (!music?.player?.current) return;
+    if (
+      !music?.player?.current ||
+      (music.currentSong && song && music.currentSong.id !== song.id)
+    )
+      return;
     music.player?.current?.addListener(
       'playbackStatusUpdate',
       playbackStatusListener
@@ -68,16 +80,20 @@ export default function MusicPlayer() {
         playbackStatusListener
       );
     };
-
-    // it's ok to ignore eslint here, i think
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [music?.currentSong, song, music?.player, playbackStatusListener]);
 
   // On initial render, load song media and create a player
   // if no player exists yet.
   useEffect(() => {
-    if (!songId || !api || music?.player.current) return;
-    api.getSongMedia(songId).then(media => {
+    console.log('init?', song?.id);
+    if (
+      !song ||
+      !api ||
+      (music?.currentSong !== undefined && song.id === music.currentSong.id)
+    )
+      return;
+
+    api.getSongMedia(song.id).then(async media => {
       if (media.length === 0) {
         alert.show('No media', 'This song has no media available');
         return;
@@ -95,18 +111,39 @@ export default function MusicPlayer() {
         100
       );
 
-      music.player.current?.removeAllListeners('playbackStatusUpdate');
-      music.player.current?.release();
+      await Audio.setAudioModeAsync({
+        // staysActiveInBackground: true, // keep playing in background
+        playsInSilentMode: true, // iOS silent switch
+        // shouldDuckAndroid: true // optional: duck other audio on Android
+        shouldPlayInBackground: true,
+        interruptionMode: 'duckOthers',
+        interruptionModeAndroid: 'duckOthers'
+      });
+      
+      console.log('player created?');
+
+      music?.player.current?.removeAllListeners('playbackStatusUpdate');
+      music?.player.current?.release();
+      if (music?.player) music.player.current = newPlayer;
+      music?.setCurrentSong?.(song);
 
       newPlayer.addListener('playbackStatusUpdate', playbackStatusListener);
       newPlayer.seekTo(0);
-      music.player.current = newPlayer;
     });
-  }, [api, songId, music?.player, alert, playbackStatusListener]);
+  }, [
+    api,
+    songId,
+    music?.player,
+    alert,
+    playbackStatusListener,
+    music?.currentSong,
+    song,
+    music
+  ]);
 
   // Fetch song cover on initial render
   useEffect(() => {
-    const coverUrl = music?.currentSong?.cover_url;
+    const coverUrl = song?.cover_url;
     if (!coverUrl) {
       setCover(undefined);
       return;
@@ -123,7 +160,7 @@ export default function MusicPlayer() {
       .catch(err => {
         console.log('Failed to load cover:', err);
       });
-  }, [music, cover, serverCtx]);
+  }, [music, cover, serverCtx, song?.cover_url]);
 
   if (music === null) {
     if (router.canGoBack()) {
@@ -139,10 +176,12 @@ export default function MusicPlayer() {
       <Stack.Screen options={{ title: 'Player' }} />
 
       <ThemedView style={styles.background}>
-        <ThemedText style={styles.title}>{music.currentSong?.title}</ThemedText>
+        <ThemedText style={styles.title}>{song?.title}</ThemedText>
         <ThemedText style={styles.artist}>
-          {music.currentSong?.artist_name ?? 'Artist Unknown'}
+          {song?.artist_name ?? 'Artist Unknown'}
         </ThemedText>
+        <ThemedText style={styles.artist}>{song?.album_name}</ThemedText>
+        <View style={styles.spacing} />
         <Image
           source={{ uri: cover }}
           style={{
@@ -257,7 +296,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   artist: {
-    fontSize: 13,
+    fontSize: 13
+  },
+  spacing: {
     marginBottom: 50
   }
 });

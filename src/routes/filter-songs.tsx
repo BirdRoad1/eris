@@ -1,18 +1,18 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, ToastAndroid, View } from 'react-native';
 
 import { useContext, useEffect, useState } from 'react';
-import { APIUnauthorizedError } from '../../api/api';
-import SongComponent from '../../components/SongComponent';
+import { APIUnauthorizedError } from '../api/api';
+import SongComponent from '../components/SongComponent';
 import { Song } from '@/src/api/song';
 import { ThemedScrollView } from '@/src/components/ThemedScrollView';
-import ThemedButton from '@/src/components/ThemedButton';
 import { useAlert } from '@/src/provider/alert-provider';
 import { useIsFocused } from '@react-navigation/native';
 import { useServer } from '@/src/provider/server-provider';
 import { MusicContext } from '@/src/provider/music-provider';
 
-export default function SongsScreen() {
+// TODO: reuse code from SongsScreen
+export default function FilterSongsScreen() {
   const serverCtx = useServer();
   const api = serverCtx?.getAPI();
   const router = useRouter();
@@ -20,6 +20,7 @@ export default function SongsScreen() {
   const alert = useAlert();
   const isFocused = useIsFocused();
   const music = useContext(MusicContext);
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     if (serverCtx?.loaded && api === null) {
@@ -28,10 +29,34 @@ export default function SongsScreen() {
   }, [api, router, serverCtx]);
 
   useEffect(() => {
+    function filterSongs(songs: Song[]) {
+      if ('filterArtistId' in params) {
+        songs = songs.filter(
+          s => s.artist_id === Number(params['filterArtistId'])
+        );
+      }
+
+      if ('filterAlbumId' in params) {
+        songs = songs.filter(
+          s => s.album_id === Number(params['filterAlbumId'])
+        );
+      }
+
+      if (
+        'allowedSongs' in params &&
+        typeof params['allowedSongs'] === 'string'
+      ) {
+        const ids = params['allowedSongs'].split(',').map(id => Number(id));
+        songs = songs.filter(s => ids.includes(s.id));
+      }
+
+      return songs;
+    }
+
     api
       ?.getSongs()
       .then(res => {
-        setSongs(res);
+        setSongs(filterSongs(res));
       })
       .catch(err => {
         if (err instanceof APIUnauthorizedError) {
@@ -42,25 +67,13 @@ export default function SongsScreen() {
           alert.show('Error', 'Failed to get songs', true);
         }
       });
-  }, [api, router, serverCtx, isFocused, alert]);
+  }, [api, router, serverCtx, isFocused, alert, params]);
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: 'Songs',
-          headerRight: () => {
-            return (
-              <ThemedButton
-                title="Create"
-                style={{ backgroundColor: '#50328dff', marginRight: 15 }}
-                rippleColor="#33078bff"
-                onPress={() => {
-                  router.navigate('/create-song');
-                }}
-              />
-            );
-          }
+          title: 'Filter Songs'
         }}
       />
       <ThemedScrollView style={styles.songs}>

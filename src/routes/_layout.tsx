@@ -50,8 +50,20 @@ export default function RootLayout() {
                 name="create-artist"
                 options={{ presentation: 'modal' }}
               />
-               <Stack.Screen
+              <Stack.Screen
                 name="create-album"
+                options={{ presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="filter-songs"
+                options={{ presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="create-playlist"
+                options={{ presentation: 'modal' }}
+              />
+               <Stack.Screen
+                name="playlist-add-song"
                 options={{ presentation: 'modal' }}
               />
               <Stack.Screen name="+not-found" />

@@ -18,14 +18,6 @@ export default function ConnectServerComponent({ onValidationChange }: Props) {
   const [url, setUrl] = useState('');
   const [token, setToken] = useState('');
 
-  // this key is local only. don't get any funny ideas :3
-  useEffect(() => {
-    setUrl('http://192.168.1.92:8000');
-    setToken(
-      'c4b7e8eeef14f47f088208a2503dffc0393ef58f98dc62de0a8777b36d24b0d2'
-    );
-  }, []);
-
   async function connect() {
     const testUrl = `${url}${!url.endsWith('/') ? '/' : ''}api/v1/`;
     const abortController = new AbortController();

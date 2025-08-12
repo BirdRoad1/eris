@@ -1,10 +1,9 @@
 import { Image, TouchableOpacity, View } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useServer } from '../provider/server-provider';
 import { router } from 'expo-router';
-import { MusicContext } from '../provider/music-provider';
 import { useAlert } from '../provider/alert-provider';
 import { Artist } from '../api/artist';
 
@@ -12,7 +11,6 @@ type Props = { artist: Artist; onDelete?: () => void }; // TODO: typed song
 
 export default function ArtistComponent({ artist, onDelete }: Props) {
   const server = useServer();
-  const music = useContext(MusicContext);
   const api = server.getAPI();
 
   const [imageData, setImageData] = useState<string>();
@@ -37,7 +35,14 @@ export default function ArtistComponent({ artist, onDelete }: Props) {
   return (
     <TouchableOpacity
       activeOpacity={0.6}
-      onPress={() => {}}
+      onPress={() => {
+        router.navigate({
+          pathname: '/filter-songs',
+          params: {
+            filterArtistId: artist.id
+          }
+        });
+      }}
       onLongPress={() => {
         alert.show(
           'Remove Artist',

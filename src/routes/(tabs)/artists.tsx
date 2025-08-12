@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
-import { StyleSheet, ToastAndroid } from 'react-native';
+import { StyleSheet, ToastAndroid, View } from 'react-native';
 
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { APIUnauthorizedError } from '../../api/api';
 import { ThemedScrollView } from '@/src/components/ThemedScrollView';
 import { useAlert } from '@/src/provider/alert-provider';
@@ -64,26 +64,28 @@ export default function ArtistsScreen() {
       />
       <Stack.Screen options={{ title: 'Artists' }} />
       <ThemedScrollView style={styles.songs}>
-        {artists.map(artist => (
-          <ArtistComponent
-            key={artist.id}
-            artist={artist}
-            onDelete={() => {
-              api
-                ?.deleteArtist(artist.id)
-                .then(() => {
-                  setArtists(old => old.filter(s => s.id !== artist.id));
-                })
-                .catch(err => {
-                  alert.show(
-                    'Delete',
-                    'Failed to delete artist: ' +
-                      (err instanceof Error ? err.message : String(err))
-                  );
-                });
-            }}
-          />
-        ))}
+        <View style={{ gap: 10 }}>
+          {artists.map(artist => (
+            <ArtistComponent
+              key={artist.id}
+              artist={artist}
+              onDelete={() => {
+                api
+                  ?.deleteArtist(artist.id)
+                  .then(() => {
+                    setArtists(old => old.filter(s => s.id !== artist.id));
+                  })
+                  .catch(err => {
+                    alert.show(
+                      'Delete',
+                      'Failed to delete artist: ' +
+                        (err instanceof Error ? err.message : String(err))
+                    );
+                  });
+              }}
+            />
+          ))}
+        </View>
       </ThemedScrollView>
     </>
   );

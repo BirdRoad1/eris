@@ -1,17 +1,16 @@
 import { Stack, useRouter } from 'expo-router';
-import { StyleSheet, ToastAndroid } from 'react-native';
+import { StyleSheet, ToastAndroid, View } from 'react-native';
 
 import { useEffect, useState } from 'react';
 import { APIUnauthorizedError } from '../../api/api';
 import { ThemedScrollView } from '@/src/components/ThemedScrollView';
 import { useAlert } from '@/src/provider/alert-provider';
 import ThemedButton from '@/src/components/ThemedButton';
-import ArtistComponent from '@/src/components/ArtistComponent';
 import { useServer } from '@/src/provider/server-provider';
 import { useIsFocused } from '@react-navigation/native';
 import { Album } from '@/src/api/album';
 import AlbumComponent from '@/src/components/AlbumComponent';
-//TODO: this screen
+
 export default function AlbumsScreen() {
   const serverCtx = useServer();
   const api = serverCtx?.getAPI();
@@ -64,26 +63,28 @@ export default function AlbumsScreen() {
         }}
       />
       <ThemedScrollView style={styles.songs}>
-        {albums.map(album => (
-          <AlbumComponent
-            key={album.id}
-            album={album}
-            onDelete={() => {
-              api
-                ?.deleteAlbum(album.id)
-                .then(() => {
-                  setAlbums(old => old.filter(a => a.id !== album.id));
-                })
-                .catch(err => {
-                  alert.show(
-                    'Delete',
-                    'Failed to delete album: ' +
-                      (err instanceof Error ? err.message : String(err))
-                  );
-                });
-            }}
-          />
-        ))}
+        <View style={{ gap: 10 }}>
+          {albums.map(album => (
+            <AlbumComponent
+              key={album.id}
+              album={album}
+              onDelete={() => {
+                api
+                  ?.deleteAlbum(album.id)
+                  .then(() => {
+                    setAlbums(old => old.filter(a => a.id !== album.id));
+                  })
+                  .catch(err => {
+                    alert.show(
+                      'Delete',
+                      'Failed to delete album: ' +
+                        (err instanceof Error ? err.message : String(err))
+                    );
+                  });
+              }}
+            />
+          ))}
+        </View>
       </ThemedScrollView>
     </>
   );

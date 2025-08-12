@@ -1,15 +1,16 @@
 import { Stack, useRouter } from 'expo-router';
 import { StyleSheet, ToastAndroid } from 'react-native';
 
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { APIUnauthorizedError } from '../../api/api';
 import { ThemedScrollView } from '@/src/components/ThemedScrollView';
 import { useAlert } from '@/src/provider/alert-provider';
 import ThemedButton from '@/src/components/ThemedButton';
 import ArtistComponent from '@/src/components/ArtistComponent';
-import { Artist } from '@/src/api/artist';
 import { useServer } from '@/src/provider/server-provider';
 import { useIsFocused } from '@react-navigation/native';
+import { Playlist } from '@/src/api/playlist';
+import PlaylistComponent from '@/src/components/PlaylistComponent';
 //TODO: this screen
 export default function PlaylistsScreen() {
   const serverCtx = useServer();
@@ -18,7 +19,7 @@ export default function PlaylistsScreen() {
   const alert = useAlert();
   const isFocused = useIsFocused();
 
-  const [artists, setArtists] = useState<Artist[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   useEffect(() => {
     if (serverCtx?.loaded && api === null) {
@@ -28,9 +29,9 @@ export default function PlaylistsScreen() {
 
   useEffect(() => {
     api
-      ?.getArtists()
+      ?.getPlaylists()
       .then(res => {
-        setArtists(res);
+        setPlaylists(res);
       })
       .catch(err => {
         if (err instanceof APIUnauthorizedError) {
@@ -38,7 +39,7 @@ export default function PlaylistsScreen() {
           router.replace('/');
           ToastAndroid.show('Logged out', ToastAndroid.SHORT);
         } else {
-          alert.show('Error', 'Failed to get artists: ' + err);
+          alert.show('Error', 'Failed to get playlists: ' + err);
         }
       });
   }, [api, router, serverCtx, isFocused, alert]);
@@ -47,7 +48,7 @@ export default function PlaylistsScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'Songs',
+          title: 'Playlists',
           headerRight: () => {
             return (
               <ThemedButton
@@ -55,29 +56,28 @@ export default function PlaylistsScreen() {
                 style={{ backgroundColor: '#50328dff', marginRight: 15 }}
                 rippleColor="#33078bff"
                 onPress={() => {
-                  router.navigate('/create-artist');
+                  router.navigate('/create-playlist');
                 }}
               />
             );
           }
         }}
       />
-      <Stack.Screen options={{ title: 'Playlists' }} />
       <ThemedScrollView style={styles.songs}>
-        {artists.map(artist => (
-          <ArtistComponent
-            key={artist.id}
-            artist={artist}
+        {playlists.map(playlist => (
+          <PlaylistComponent
+            key={playlist.id}
+            playlist={playlist}
             onDelete={() => {
               api
-                ?.deleteArtist(artist.id)
+                ?.deletePlaylist(playlist.id)
                 .then(() => {
-                  setArtists(old => old.filter(s => s.id !== artist.id));
+                  setPlaylists(old => old.filter(s => s.id !== playlist.id));
                 })
                 .catch(err => {
                   alert.show(
                     'Delete',
-                    'Failed to delete artist: ' +
+                    'Failed to delete playlist: ' +
                       (err instanceof Error ? err.message : String(err))
                   );
                 });

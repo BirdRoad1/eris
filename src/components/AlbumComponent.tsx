@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useServer } from '../provider/server-provider';
 import { useAlert } from '../provider/alert-provider';
 import { Album } from '../api/album';
+import { router } from 'expo-router';
 
 type Props = { album: Album; onDelete?: () => void }; // TODO: typed song
 
@@ -34,7 +35,14 @@ export default function AlbumComponent({ album, onDelete }: Props) {
   return (
     <TouchableOpacity
       activeOpacity={0.6}
-      onPress={() => {}}
+      onPress={() => {
+        router.navigate({
+          pathname: '/filter-songs',
+          params: {
+            filterAlbumId: album.id
+          }
+        });
+      }}
       onLongPress={() => {
         alert.show(
           'Remove Album',
@@ -72,7 +80,9 @@ export default function AlbumComponent({ album, onDelete }: Props) {
           <ThemedText style={{ fontSize: 16, fontWeight: 'bold' }}>
             {album.name}
           </ThemedText>
-          <ThemedText style={{ fontSize: 16 }}>{album.artists.join(', ')}</ThemedText>
+          <ThemedText style={{ fontSize: 16 }}>
+            {album.artists.join(', ')}
+          </ThemedText>
           <ThemedText style={{ fontSize: 16 }}>
             {album.song_count} songs
           </ThemedText>

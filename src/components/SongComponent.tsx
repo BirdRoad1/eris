@@ -1,17 +1,27 @@
 import { Image, TouchableOpacity, View } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import { MusicContext } from '../provider/music-provider';
 import { Song } from '../api/song';
 import { useAlert } from '../provider/alert-provider';
 import { useServer } from '../provider/server-provider';
 
-type Props = { song: Song; onDelete?: () => void }; // TODO: typed song
+type Props = {
+  song: Song;
+  showPlayerOnClick?: boolean;
+  canDelete?: boolean;
+  onDelete?: () => void;
+  onClick?: () => void;
+}; // TODO: typed song
 
-export default function SongComponent({ song, onDelete }: Props) {
-  const music = useContext(MusicContext);
+export default function SongComponent({
+  song,
+  onDelete,
+  showPlayerOnClick,
+  onClick,
+  canDelete
+}: Props) {
   const api = useServer().getAPI();
 
   const [imageData, setImageData] = useState<string>();
@@ -37,10 +47,21 @@ export default function SongComponent({ song, onDelete }: Props) {
     <TouchableOpacity
       activeOpacity={0.6}
       onPress={() => {
-        music?.setCurrentSong?.(song);
-        router.navigate('/music-player');
+        onClick?.();
+        
+        if (showPlayerOnClick === false) return;
+        //TODO: do not set current song, pass new song as prop
+        // music?.setCurrentSong?.(song);
+        router.navigate({
+          pathname: '/music-player',
+          params: {
+            song: JSON.stringify(song)
+          }
+        });
+
       }}
       onLongPress={() => {
+        if (canDelete === false) return;
         alert.show(
           'Remove Song',
           'Are you sure you want to remove this song?',

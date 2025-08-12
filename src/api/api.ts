@@ -238,4 +238,50 @@ export default class API {
 
     await this.checkStatus(res);
   }
+
+  async getPlaylists(): Promise<Artist[]> {
+    const res = await this.request(`${this.url}api/v1/playlists`);
+    await this.checkStatus(res);
+    const json = await res.json();
+    return json['results'];
+  }
+
+  async createPlaylist(name: string) {
+    const res = await this.request(`${this.url}api/v1/playlists`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ name })
+    });
+
+    await this.checkStatus(res);
+
+    return await res.json();
+  }
+
+  async deletePlaylist(id: number) {
+    const res = await this.request(`${this.url}api/v1/playlists/${id}`, {
+      method: 'DELETE'
+    });
+
+    await this.checkStatus(res);
+  }
+
+  async addSongToPlaylist(songId: number, playlistId: number) {
+    const res = await this.request(
+      `${this.url}api/v1/playlists/${playlistId}/song`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ id: songId })
+      }
+    );
+
+    await this.checkStatus(res);
+
+    return await res.json();
+  }
 }

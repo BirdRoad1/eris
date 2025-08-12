@@ -11,5 +11,6 @@ export type Song = {
   album_name: number | null;
   album_cover_path: number | null;
   artist_name: string | null;
+  artist_id: number | null;
   cover_url: string | null;
 };
