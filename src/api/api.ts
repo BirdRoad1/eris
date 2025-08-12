@@ -2,6 +2,7 @@ import * as Application from 'expo-application';
 import { Song } from './song';
 import * as FileSystem from 'expo-file-system';
 import { Artist } from './artist';
+import { Playlist } from './playlist';
 
 const USER_AGENT = `${Application.applicationId}/${Application.nativeApplicationVersion} (made with <3)`;
 
@@ -239,7 +240,7 @@ export default class API {
     await this.checkStatus(res);
   }
 
-  async getPlaylists(): Promise<Artist[]> {
+  async getPlaylists(): Promise<Playlist[]> {
     const res = await this.request(`${this.url}api/v1/playlists`);
     await this.checkStatus(res);
     const json = await res.json();
@@ -273,6 +274,23 @@ export default class API {
       `${this.url}api/v1/playlists/${playlistId}/song`,
       {
         method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ id: songId })
+      }
+    );
+
+    await this.checkStatus(res);
+
+    return await res.json();
+  }
+
+  async removeSongFromPlaylist(songId: number, playlistId: number) {
+    const res = await this.request(
+      `${this.url}api/v1/playlists/${playlistId}/song`,
+      {
+        method: 'DELETE',
         headers: {
           'content-type': 'application/json'
         },

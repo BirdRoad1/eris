@@ -2,7 +2,8 @@ export type Playlist = {
   id: number;
   name: string;
   songs: {
-    id: string;
+    id: number;
     name: string;
+    cover_url: string | null;
   }[];
 };

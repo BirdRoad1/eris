@@ -6,28 +6,36 @@ import { router } from 'expo-router';
 import { useAlert } from '../provider/alert-provider';
 import { Playlist } from '../api/playlist';
 import ThemedButton from './ThemedButton';
+import { useEffect, useState } from 'react';
 
 type Props = { playlist: Playlist; onDelete?: () => void }; // TODO: typed song
 
 export default function PlaylistComponent({ playlist, onDelete }: Props) {
-  // const [imageData, setImageData] = useState<string>();
+  const [imageData, setImageData] = useState<string>();
   const alert = useAlert();
+  const api = useServer()?.getAPI();
 
-  // useEffect(() => {
-  //   if (!artist.cover_url) return;
-  //   api
-  //     ?.fetchImageBase64(artist.cover_url)
-  //     .then(img => {
-  //       if (img) {
-  //         setImageData(img);
-  //       }
-  //     })
-  //     .catch(err => {
-  //       console.log(
-  //         'Image failed to load: ' + artist.cover_url + ', error: ' + err
-  //       );
-  //     });
-  // }, [api, artist.cover_url]);
+  useEffect(() => {
+    if (playlist.songs.length === 0) {
+      setImageData(undefined);
+      return;
+    }
+    const song = playlist.songs[0];
+    if (!song.cover_url) return;
+
+    api
+      ?.fetchImageBase64(song.cover_url)
+      .then(img => {
+        if (img) {
+          setImageData(img);
+        }
+      })
+      .catch(err => {
+        console.log(
+          'Image failed to load: ' + song.cover_url + ', error: ' + err
+        );
+      });
+  }, [api, playlist]);
 
   return (
     <TouchableOpacity
@@ -36,7 +44,8 @@ export default function PlaylistComponent({ playlist, onDelete }: Props) {
         router.navigate({
           pathname: '/filter-songs',
           params: {
-            allowedSongs: playlist.songs.map(s => s.id).join(',')
+            playlist: JSON.stringify(playlist)
+            // allowedSongs: playlist.songs.map(s => s.id).join(','),
           }
         });
       }}
@@ -64,23 +73,32 @@ export default function PlaylistComponent({ playlist, onDelete }: Props) {
         }}
       >
         <Image
-          // source={{
-          //   uri: imageData
-          // }}
+          source={{
+            uri: imageData
+          }}
           style={{
             width: 100,
             height: 100,
-            borderRadius: 100
+            borderRadius: 4,
+            backgroundColor: '#151515ff'
           }}
         />
         <View
           style={{
-            gap: 10
+            paddingVertical: 2
           }}
         >
-          <ThemedText style={{ fontSize: 16, fontWeight: 'bold' }}>
-            {playlist.name}
-          </ThemedText>
+          <View style={{ marginBottom: 'auto' }}>
+            <ThemedText
+              style={{ fontSize: 16, fontWeight: 'bold', lineHeight: 18 }}
+            >
+              {playlist.name}
+            </ThemedText>
+            <ThemedText style={{ lineHeight: 18 }}>
+              {playlist.songs.length}{' '}
+              {playlist.songs.length === 1 ? 'song' : 'songs'}
+            </ThemedText>
+          </View>
           <ThemedButton
             title="Add Song"
             style={{

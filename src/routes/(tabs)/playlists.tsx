@@ -6,7 +6,6 @@ import { APIUnauthorizedError } from '../../api/api';
 import { ThemedScrollView } from '@/src/components/ThemedScrollView';
 import { useAlert } from '@/src/provider/alert-provider';
 import ThemedButton from '@/src/components/ThemedButton';
-import ArtistComponent from '@/src/components/ArtistComponent';
 import { useServer } from '@/src/provider/server-provider';
 import { useIsFocused } from '@react-navigation/native';
 import { Playlist } from '@/src/api/playlist';
@@ -31,6 +30,7 @@ export default function PlaylistsScreen() {
     api
       ?.getPlaylists()
       .then(res => {
+        console.log('got:', res);
         setPlaylists(res);
       })
       .catch(err => {

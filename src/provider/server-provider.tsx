@@ -7,7 +7,6 @@ import {
 } from 'react';
 import API from '../api/api';
 import * as SecureStore from 'expo-secure-store';
-import { Alert } from 'react-native';
 import { useAlert } from './alert-provider';
 
 type ContextType = {

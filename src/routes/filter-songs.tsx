@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, ToastAndroid, View } from 'react-native';
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { APIUnauthorizedError } from '../api/api';
 import SongComponent from '../components/SongComponent';
 import { Song } from '@/src/api/song';
@@ -10,6 +10,7 @@ import { useAlert } from '@/src/provider/alert-provider';
 import { useIsFocused } from '@react-navigation/native';
 import { useServer } from '@/src/provider/server-provider';
 import { MusicContext } from '@/src/provider/music-provider';
+import { Playlist } from '../api/playlist';
 
 // TODO: reuse code from SongsScreen
 export default function FilterSongsScreen() {
@@ -21,6 +22,22 @@ export default function FilterSongsScreen() {
   const isFocused = useIsFocused();
   const music = useContext(MusicContext);
   const params = useLocalSearchParams();
+  const [playlist, setPlaylist] = useState<Playlist>(() =>
+    'playlist' in params && typeof params['playlist'] === 'string'
+      ? JSON.parse(params['playlist'])
+      : undefined
+  );
+  const filterArtistId: number | undefined = useRef(
+    'filterArtistId' in params && typeof params['filterArtistId'] === 'string'
+      ? Number(params['filterArtistId'])
+      : undefined
+  ).current;
+
+  const filterAlbumId: number | undefined = useRef(
+    'filterAlbumId' in params && typeof params['filterAlbumId'] === 'string'
+      ? Number(params['filterAlbumId'])
+      : undefined
+  ).current;
 
   useEffect(() => {
     if (serverCtx?.loaded && api === null) {
@@ -30,24 +47,16 @@ export default function FilterSongsScreen() {
 
   useEffect(() => {
     function filterSongs(songs: Song[]) {
-      if ('filterArtistId' in params) {
-        songs = songs.filter(
-          s => s.artist_id === Number(params['filterArtistId'])
-        );
+      if (filterArtistId !== undefined) {
+        songs = songs.filter(s => s.artist_id === filterArtistId);
       }
 
-      if ('filterAlbumId' in params) {
-        songs = songs.filter(
-          s => s.album_id === Number(params['filterAlbumId'])
-        );
+      if (filterAlbumId !== undefined) {
+        songs = songs.filter(s => s.album_id === filterAlbumId);
       }
 
-      if (
-        'allowedSongs' in params &&
-        typeof params['allowedSongs'] === 'string'
-      ) {
-        const ids = params['allowedSongs'].split(',').map(id => Number(id));
-        songs = songs.filter(s => ids.includes(s.id));
+      if (playlist) {
+        return songs.filter(s => playlist.songs.some(p => p.id === s.id));
       }
 
       return songs;
@@ -67,7 +76,16 @@ export default function FilterSongsScreen() {
           alert.show('Error', 'Failed to get songs', true);
         }
       });
-  }, [api, router, serverCtx, isFocused, alert, params]);
+  }, [
+    api,
+    router,
+    serverCtx,
+    isFocused,
+    alert,
+    playlist,
+    filterAlbumId,
+    filterArtistId
+  ]);
 
   return (
     <>
@@ -87,6 +105,27 @@ export default function FilterSongsScreen() {
               key={song.id}
               song={song}
               onDelete={() => {
+                if (playlist !== undefined) {
+                  // remove from playlist
+                  api
+                    ?.removeSongFromPlaylist(song.id, playlist.id)
+                    .then(() => {
+                      setPlaylist({
+                        ...playlist,
+                        songs: playlist.songs.filter(s => s.id !== song.id)
+                      });
+                    })
+                    .catch(err => {
+                      alert.show(
+                        'Error',
+                        'Failed to remove song from playlist: ' +
+                          (err instanceof Error ? err.message : String(err))
+                      );
+                    });
+                  return;
+                }
+
+                // delete song
                 api
                   ?.deleteSong(song.id)
                   .then(() => {
@@ -103,7 +142,7 @@ export default function FilterSongsScreen() {
                   })
                   .catch(err => {
                     alert.show(
-                      'Delete',
+                      'Error',
                       'Failed to delete song: ' +
                         (err instanceof Error ? err.message : String(err))
                     );
