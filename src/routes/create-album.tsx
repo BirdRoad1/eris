@@ -18,15 +18,14 @@ import { useServer } from '../provider/server-provider';
 import { Artist } from '../api/artist';
 
 export default function CreateAlbum() {
+  const [name, setName] = useState('');
+  const [artists, setArtists] = useState<Artist[]>();
+  const [year, setYear] = useState<number>();
+  const [genre, setGenre] = useState('');
   const [cover, setCover] = useState<
     DocumentPicker.DocumentPickerAsset | undefined
   >(undefined);
-  const [title, setTitle] = useState('');
-  const [medias, setMedias] = useState<DocumentPicker.DocumentPickerAsset[]>(
-    []
-  );
-  const [artist, setArtist] = useState<Artist>();
-  const [year, setYear] = useState<number>();
+
   const serverCtx = useServer();
   const alert = useAlert();
 
@@ -34,33 +33,31 @@ export default function CreateAlbum() {
     const api = serverCtx?.getAPI();
     if (!api) return;
 
-    if (!title) {
-      alert.show('Error', 'Please enter a valid title');
+    if (!name) {
+      alert.show('Error', 'Please enter a valid name');
       return;
     }
 
     try {
-      const { id } = await api.createSong(title, artist?.id);
-
-      if (cover || medias.length > 0) {
-        ToastAndroid.show('Uploading...', ToastAndroid.SHORT);
-      }
+      const { id } = await api.createAlbum(
+        name,
+        artists?.map(a => a.id) ?? [],
+        genre,
+        year
+      );
 
       if (cover) {
-        await api.uploadAsset(id, cover.uri, 'songs', cover.name, 'cover');
-      }
-
-      for (const media of medias) {
-        await api.uploadAsset(id, media.uri, 'songs', media.name, 'media');
+        ToastAndroid.show('Uploading...', ToastAndroid.SHORT);
+        await api.uploadAsset(id, cover.uri, 'albums', cover.name, 'cover');
       }
 
       if (router.canGoBack()) {
         router.back();
       } else {
-        router.replace('/songs');
+        router.replace('/albums');
       }
 
-      ToastAndroid.show('Song created', ToastAndroid.SHORT);
+      ToastAndroid.show('Album created', ToastAndroid.SHORT);
     } catch (err) {
       alert.show('Error', err instanceof Error ? err.message : String(err));
     }
@@ -68,26 +65,61 @@ export default function CreateAlbum() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Create Song' }} />
+      <Stack.Screen options={{ title: 'Create Album' }} />
 
       <ThemedView style={styles.background}>
         <View style={styles.input}>
-          <ThemedText style={{ fontSize: 15 }}>Title</ThemedText>
+          <ThemedText style={{ fontSize: 15 }}>Name*</ThemedText>
           <ThemedInput
-            placeholder="Enter the song's title"
+            placeholder="Enter the album's name"
             autoCapitalize="words"
-            value={title}
-            onChangeText={value => setTitle(value)}
+            value={name}
+            onChangeText={value => setName(value)}
           />
         </View>
         <View style={styles.input}>
           <ThemedText style={{ fontSize: 15 }}>Artist</ThemedText>
-          <ArtistSearchInput onSelectArtist={artist => setArtist(artist)} />
+          <ArtistSearchInput
+            onSelectArtist={artist => {
+              if (artists?.some(a => a.id === artist.id)) return;
+              setArtists([...(artists || []), artist]);
+            }}
+          />
         </View>
+        {artists && artists.length > 0 && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10
+            }}
+          >
+            <ThemedText>Artists</ThemedText>
+            {artists.map(artist => (
+              <TouchableOpacity
+                key={artist.id}
+                onPress={() => {
+                  setArtists(old => old?.filter(o => o.id !== artist.id));
+                }}
+              >
+                <ThemedText
+                  style={{
+                    backgroundColor: '#080808ff',
+                    paddingVertical: 5,
+                    paddingHorizontal: 10,
+                    borderRadius: 4
+                  }}
+                >
+                  {artist.name}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <View style={styles.input}>
-          <ThemedText style={{ fontSize: 15 }}>Year</ThemedText>
+          <ThemedText style={{ fontSize: 15 }}>Release Year</ThemedText>
           <ThemedInput
-            placeholder="Enter the song's year"
+            placeholder="Enter a year"
             keyboardType="numeric"
             value={year?.toString() ?? ''}
             onChangeText={value => {
@@ -101,6 +133,14 @@ export default function CreateAlbum() {
 
               setYear(num);
             }}
+          />
+        </View>
+        <View style={styles.input}>
+          <ThemedText style={{ fontSize: 15 }}>Genre</ThemedText>
+          <ThemedInput
+            placeholder="Enter the album's genre"
+            value={genre}
+            onChangeText={value => setGenre(value)}
           />
         </View>
         <ThemedButton
@@ -125,32 +165,6 @@ export default function CreateAlbum() {
 
               setCover(asset);
               console.log('File pick result:', result);
-            });
-          }}
-        />
-
-        <ThemedButton
-          title={'Upload media'}
-          style={{ backgroundColor: '#272727ff' }}
-          rippleColor="#1d1d1dff"
-          onPress={() => {
-            DocumentPicker.getDocumentAsync({
-              type: ['audio/*']
-            }).then(result => {
-              if (result.canceled) return;
-              if (result.assets.length === 0) return;
-              const newMedias = result.assets.filter(
-                a =>
-                  !medias.some(
-                    m =>
-                      m.name === a.name &&
-                      m.size === a.size &&
-                      m.lastModified === a.lastModified
-                  )
-              );
-
-              setMedias([...medias, ...newMedias]);
-              console.log('File pick result:', newMedias);
             });
           }}
         />
@@ -185,43 +199,6 @@ export default function CreateAlbum() {
                 {cover.name}
               </ThemedText>
             </TouchableOpacity>
-          </View>
-        )}
-        {medias.length > 0 && (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10
-            }}
-          >
-            <ThemedText>Media</ThemedText>
-            {medias.map(media => (
-              <TouchableOpacity
-                key={JSON.stringify({ n: media.name, s: media.size })}
-                onPress={() => {
-                  setMedias(old =>
-                    old.filter(
-                      o =>
-                        o.name !== media.name &&
-                        o.lastModified !== media.lastModified &&
-                        o.size !== media.size
-                    )
-                  );
-                }}
-              >
-                <ThemedText
-                  style={{
-                    backgroundColor: '#080808ff',
-                    paddingVertical: 5,
-                    paddingHorizontal: 10,
-                    borderRadius: 4
-                  }}
-                >
-                  {media.name}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
           </View>
         )}
       </ThemedView>

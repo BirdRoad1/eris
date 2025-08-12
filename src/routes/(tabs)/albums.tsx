@@ -7,9 +7,10 @@ import { ThemedScrollView } from '@/src/components/ThemedScrollView';
 import { useAlert } from '@/src/provider/alert-provider';
 import ThemedButton from '@/src/components/ThemedButton';
 import ArtistComponent from '@/src/components/ArtistComponent';
-import { Artist } from '@/src/api/artist';
 import { useServer } from '@/src/provider/server-provider';
 import { useIsFocused } from '@react-navigation/native';
+import { Album } from '@/src/api/album';
+import AlbumComponent from '@/src/components/AlbumComponent';
 //TODO: this screen
 export default function AlbumsScreen() {
   const serverCtx = useServer();
@@ -18,19 +19,19 @@ export default function AlbumsScreen() {
   const alert = useAlert();
   const isFocused = useIsFocused();
 
-  const [artists, setArtists] = useState<Artist[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
 
   useEffect(() => {
     if (serverCtx?.loaded && api === null) {
-      router.replace('/create-album');
+      router.replace('/onboarding');
     }
   }, [api, router, serverCtx]);
 
   useEffect(() => {
     api
-      ?.getArtists()
+      ?.getAlbums()
       .then(res => {
-        setArtists(res);
+        setAlbums(res);
       })
       .catch(err => {
         if (err instanceof APIUnauthorizedError) {
@@ -38,7 +39,7 @@ export default function AlbumsScreen() {
           router.replace('/');
           ToastAndroid.show('Logged out', ToastAndroid.SHORT);
         } else {
-          alert.show('Error', 'Failed to get artists: ' + err);
+          alert.show('Error', 'Failed to get albums: ' + err);
         }
       });
   }, [api, router, serverCtx, isFocused, alert]);
@@ -55,7 +56,7 @@ export default function AlbumsScreen() {
                 style={{ backgroundColor: '#50328dff', marginRight: 15 }}
                 rippleColor="#33078bff"
                 onPress={() => {
-                  router.navigate('/create-artist');
+                  router.navigate('/create-album');
                 }}
               />
             );
@@ -63,20 +64,20 @@ export default function AlbumsScreen() {
         }}
       />
       <ThemedScrollView style={styles.songs}>
-        {artists.map(artist => (
-          <ArtistComponent
-            key={artist.id}
-            artist={artist}
+        {albums.map(album => (
+          <AlbumComponent
+            key={album.id}
+            album={album}
             onDelete={() => {
               api
-                ?.deleteArtist(artist.id)
+                ?.deleteAlbum(album.id)
                 .then(() => {
-                  setArtists(old => old.filter(s => s.id !== artist.id));
+                  setAlbums(old => old.filter(a => a.id !== album.id));
                 })
                 .catch(err => {
                   alert.show(
                     'Delete',
-                    'Failed to delete artist: ' +
+                    'Failed to delete album: ' +
                       (err instanceof Error ? err.message : String(err))
                   );
                 });

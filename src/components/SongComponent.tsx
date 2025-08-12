@@ -80,6 +80,9 @@ export default function SongComponent({ song, onDelete }: Props) {
           {song.artist_name !== null && (
             <ThemedText>{song.artist_name}</ThemedText>
           )}
+          {song.album_name && (
+            <ThemedText style={{ fontSize: 15 }}>{song.album_name}</ThemedText>
+          )}
           {song.release_year !== null && (
             <ThemedText>Released {song.release_year}</ThemedText>
           )}

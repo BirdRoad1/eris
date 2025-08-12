@@ -16,6 +16,8 @@ import { useAlert } from '../provider/alert-provider';
 import { ArtistSearchInput } from '../components/ArtistSearchInput';
 import { useServer } from '../provider/server-provider';
 import { Artist } from '../api/artist';
+import { AlbumSearchInput } from '../components/AlbumSearchInput';
+import { Album } from '../api/album';
 
 export default function CreateSong() {
   const [cover, setCover] = useState<
@@ -26,6 +28,7 @@ export default function CreateSong() {
     []
   );
   const [artist, setArtist] = useState<Artist>();
+  const [album, setAlbum] = useState<Album>();
   const [year, setYear] = useState<number>();
   const serverCtx = useServer();
   const alert = useAlert();
@@ -40,7 +43,7 @@ export default function CreateSong() {
     }
 
     try {
-      const { id } = await api.createSong(title, artist?.id);
+      const { id } = await api.createSong(title, artist?.id, album?.id);
 
       if (cover || medias.length > 0) {
         ToastAndroid.show('Uploading...', ToastAndroid.SHORT);
@@ -83,6 +86,10 @@ export default function CreateSong() {
         <View style={styles.input}>
           <ThemedText style={{ fontSize: 15 }}>Artist</ThemedText>
           <ArtistSearchInput onSelectArtist={artist => setArtist(artist)} />
+        </View>
+        <View style={styles.input}>
+          <ThemedText style={{ fontSize: 15 }}>Album</ThemedText>
+          <AlbumSearchInput onSelectAlbum={album => setAlbum(album)} />
         </View>
         <View style={styles.input}>
           <ThemedText style={{ fontSize: 15 }}>Year</ThemedText>

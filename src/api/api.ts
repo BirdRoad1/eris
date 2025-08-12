@@ -101,13 +101,13 @@ export default class API {
     return json['results'];
   }
 
-  async createSong(title: string, artistId?: number) {
+  async createSong(title: string, artistId?: number, albumId?: number) {
     const res = await this.request(`${this.url}api/v1/songs`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json'
       },
-      body: JSON.stringify({ title, artistId })
+      body: JSON.stringify({ title, artistId, albumId })
     });
 
     await this.checkStatus(res);
@@ -126,7 +126,7 @@ export default class API {
   async uploadAsset(
     id: number,
     fileUri: string,
-    entity: 'songs' | 'artists',
+    entity: 'songs' | 'artists' | 'albums',
     fileName: string,
     type: 'media' | 'cover'
   ) {
@@ -190,5 +190,52 @@ export default class API {
     await this.checkStatus(res);
 
     return (await res.json()).results;
+  }
+
+  async getAlbums() {
+    const res = await this.request(`${this.url}api/v1/albums`);
+    await this.checkStatus(res);
+    const json = await res.json();
+    return json['results'];
+  }
+
+  async createAlbum(
+    name: string,
+    artistIds: number[],
+    genre?: string,
+    release_year?: number
+  ) {
+    const res = await this.request(`${this.url}api/v1/albums`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ name, artistIds, genre, release_year })
+    });
+
+    await this.checkStatus(res);
+
+    return await res.json();
+  }
+
+  async searchAlbums(name: string) {
+    const res = await this.request(
+      `${this.url}api/v1/albums/search?name=${name}`,
+      {
+        method: 'GET'
+      }
+    );
+
+    await this.checkStatus(res);
+
+    return (await res.json()).results;
+  }
+
+  async deleteAlbum(id: number) {
+    const res = await this.request(`${this.url}api/v1/albums/${id}`, {
+      method: 'DELETE'
+    });
+
+    await this.checkStatus(res);
   }
 }
